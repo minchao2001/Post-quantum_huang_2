@@ -1,4 +1,3 @@
-
 include make_opt.mk
 
 COMMON_HEADERs = hal.h params.h
@@ -10,7 +9,7 @@ YOUR_SOURCEs = $(C_SOURCEs) $(ASM_SOURCEs)
 HEADERs = $(COMMON_HEADERs) $(YOUR_HEADERs)
 SOURCEs = $(COMMON_SOURCEs) $(YOUR_SOURCEs)
 
-
+all: test speed
 
 test: $(HEADERs) $(SOURCEs) test.c
 	$(CC) $(CFLAGS) -o test test.c $(SOURCEs)
@@ -26,5 +25,4 @@ include ../common/make.mk
 clean:
 	rm -f test
 	rm -f speed
-
 

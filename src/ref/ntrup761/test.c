@@ -119,7 +119,12 @@ int main(void){
         printf("fft_res_3: ");
         print_array(fft_res,761);
         for(size_t j = 0; j < NTRUP_P; j++){
+            if(ref[j]!= fft_res[j]){
             printf("Mismatch at index %zu: ref[%zu] = %d, fft_res[%zu] = %d\n", j, j, ref[j], j, fft_res[j]);
+            }
+            else{
+            printf("match at index %zu: ref[%zu] = %d, fft_res[%zu] = %d\n", j, j, ref[j], j, fft_res[j]);   
+            }
             assert(ref[j] == fft_res[j]);
         }
     }

@@ -1,5 +1,4 @@
 #include <stdint.h>
-
 #include "params.h"
 #include "poly.h"
 #include <stdlib.h>
@@ -20,8 +19,7 @@ static int16_t cmod(int32_t a, int16_t mod){
     return t;
 }
 
-
-void poly_Rq_mul_small(int16_t *h, const int16_t *f,const int8_t *g)
+void poly_Rq_mul_small(int16_t *h, const int16_t *f, const int8_t *g)
 {
     int16_t fg[NTRUP_P + NTRUP_P - 1];
     int16_t result;
@@ -30,13 +28,13 @@ void poly_Rq_mul_small(int16_t *h, const int16_t *f,const int8_t *g)
     for (i = 0; i < NTRUP_P; i++) {
       result = 0;
       for (j = 0;j <= i;++j) 
-          result = cmod(result+f[j]*(int32_t)g[i-j], NTRUP_Q);
+          result = cmod(result + f[j] * (int32_t)g[i - j], NTRUP_Q);
       fg[i] = result;
     }
-    for (i = NTRUP_P;i < 2 * NTRUP_P - 1;++i) {
+    for (i = NTRUP_P; i < 2 * NTRUP_P - 1; ++i) {
       result = 0;
       for (j = i - NTRUP_P + 1; j < NTRUP_P; ++j) 
-          result = cmod(result+f[j]*(int32_t)g[i-j], NTRUP_Q);
+          result = cmod(result + f[j] * (int32_t)g[i - j], NTRUP_Q);
       fg[i] = result;
     }
 
@@ -65,50 +63,7 @@ static int16_t modpow(int16_t a, int16_t b, int16_t m) {
     return res;
 }
 
-int16_t find_primitive_root(int16_t q) {
-    printf("Finding primitive root for q = %d\n", q);
-    int16_t phi = q - 1;
-    int16_t n = phi;
-    for (int16_t i = 2; i * i <= n; ++i) {
-        if (n % i == 0) {
-            phi -= phi / i;
-            while (n % i == 0) {
-                n /= i;
-            }
-        }
-    }
-    if (n > 1) {
-        phi -= phi / n;
-    }
-
-    for (int16_t g = 2; g < q; ++g) {
-        if (modpow(g, phi, q) == 1) {
-            printf("Primitive root found: %d\n", g);
-            return g;
-        }
-    }
-
-    printf("No primitive root found\n");
-    return -1; // No primitive root found
-}
-
-/*  
-Cooley-Tukey
-It takes two complex numbers a and b, and a twiddle factor twiddle, 
-and computes a' = a + twiddle * b and b' = a - twiddle * b, 
-where a' and b' are the updated values of a and b, respectively.
-*/
-static void butterfly(int16_t *a, int16_t *b, int16_t twiddle, int16_t m) {
-    int16_t t = cmod((int32_t)*b * twiddle, m);
-    
-    int16_t new_b = cmod((int32_t)*a - t, m);
-    int16_t new_a = cmod((int32_t)*a + t, m);
-    // printf("a: %d, b: %d, twiddle: %d, t: %d, new_a: %d, new_b: %d, m: %d\n", *a, *b, twiddle, t, new_a, new_b, m);
-    *b = new_b;
-    *a = new_a;
-}
 static int16_t modinv(int16_t a, int16_t m) {
-    // Implementing modular inverse using Extended Euclidean Algorithm
     int16_t t = 0, newt = 1;
     int16_t r = m, newr = a;
     while (newr != 0) {
@@ -125,6 +80,21 @@ static int16_t modinv(int16_t a, int16_t m) {
     if (t < 0) t = t + m;
     return t;
 }
+
+/*  
+Cooley-Tukey
+It takes two complex numbers a and b, and a twiddle factor twiddle, 
+and computes a' = a + twiddle * b and b' = a - twiddle * b, 
+where a' and b' are the updated values of a and b, respectively.
+*/
+static void butterfly(int16_t *a, int16_t *b, int16_t twiddle, int16_t m) {
+    int16_t t = cmod((int32_t)*b * twiddle, m);
+    int16_t new_b = cmod((int32_t)*a - t, m);
+    int16_t new_a = cmod((int32_t)*a + t, m);
+    *b = new_b;
+    *a = new_a;
+}
+
 /*  
 gentleman_sande_butterfly
 It takes two complex numbers a and b, and a twiddle factor twiddle, 
@@ -139,10 +109,10 @@ static void gentleman_sande_butterfly(int16_t *a, int16_t *b, int16_t twiddle, i
     int16_t new_a = cmod((int32_t)a_temp + b_temp, m);
     int16_t new_b = cmod((int32_t)cmod((int32_t)a_temp - b_temp, m) * twiddle_inv, m);
 
-   //printf("a: %d, b: %d, twiddle: %d, twiddle_inv: %d, new_a: %d, new_b: %d, m: %d\n", *a, *b, twiddle, twiddle_inv, new_a, new_b, m);
     *a = new_a;
     *b = new_b;
 }
+
 // Function to reverse the bits of a given index
 uint16_t bit_reverse(uint16_t num, int16_t len) {
     uint16_t rev_num = 0;
@@ -162,94 +132,50 @@ void bit_reversal_reorder(int16_t *a, int16_t n, int16_t N_bit) {
         }
     }
 }
+
 static void fft(int16_t *a, int16_t n, int16_t m) {
     int16_t N_bit = 0;
-    for (int16_t temp = n; temp > 0; temp >>= 1)
+    for (int16_t temp = n; temp > 0; temp >>= 1) {
         N_bit++;
+    }
     N_bit--;
 
     bit_reversal_reorder(a, n, N_bit);
 
-    // Cooley-Tukey FFT
-    for (int16_t i = 0; i < N_bit; i++) {
-        int16_t points1[n / 2];
-        int16_t points2[n / 2];
-        int16_t len = 1 << (i + 1);
+    for (int16_t len = 2; len <= n; len <<= 1) {
         int16_t half_len = len >> 1;
-        int16_t twiddle = modpow(NTRUP_ROOT, NTRUP_Q / len, NTRUP_Q);
-
-        for (int16_t j = 0; j < n / 2; j++) {
-            int16_t shift_bits = N_bit - i;
-            int16_t P = (j >> shift_bits) << shift_bits;
-            int16_t w_P = modpow(twiddle, P, NTRUP_Q);
-            int16_t even = a[j];
-            int16_t odd = a[j + half_len] * w_P;
-            points1[j] = cmod(even + odd, m);
-            points2[j] = cmod(even - odd, m);
-        }
-
-        int16_t k = 0;
-        for (int16_t j = 0; j < n / 2; j++) {
-            a[k++] = points1[j];
-            a[k++] = points2[j];
+        int16_t twiddle_base = modpow(NTRUP_ROOT, NTRUP_Q / len, NTRUP_Q);
+        for (int16_t i = 0; i < n; i += len) {
+            int16_t twiddle = 1;
+            for (int16_t j = 0; j < half_len; j++) {
+                butterfly(&a[i + j], &a[i + j + half_len], twiddle, m);
+                twiddle = cmod((int32_t)twiddle * twiddle_base, m);
+            }
         }
     }
 }
+
 static void ifft(int16_t *a, int16_t n, int16_t m) {
     int16_t inv_n = modpow(n, NTRUP_Q - 2, NTRUP_Q);
-    int16_t inv_w = modpow(NTRUP_ROOT, NTRUP_Q - 1, NTRUP_Q);
 
-    fft(a, n, m);
+    bit_reversal_reorder(a, n, 0);
 
-    for (int16_t i = 0; i < n; i++) {
-        a[i] = cmod((int32_t)a[i] * inv_w, m);
-        a[i] = cmod((int32_t)a[i] * inv_n, m);
+    for (int16_t len = n; len >= 2; len >>= 1) {
+        int16_t half_len = len >> 1;
+        int16_t twiddle_base = modpow(NTRUP_ROOT, len, NTRUP_Q);
+        for (int16_t i = 0; i < n; i += len) {
+            int16_t twiddle = 1;
+            for (int16_t j = 0; j < half_len; j++) {
+                gentleman_sande_butterfly(&a[i + j], &a[i + j + half_len], twiddle, m);
+                twiddle = cmod((int32_t)twiddle * twiddle_base, m);
+            }
+        }
     }
 
-    bit_reversal_reorder(a, n, n / 2);
+    for (int16_t i = 0; i < n; i++) {
+        a[i] = cmod((int32_t)a[i] * inv_n, m);
+    }
 }
-// static void fft(int16_t *a, int16_t n, int16_t m) {
-//     int16_t N_bit = 0;
-//     for (int16_t temp = n; temp > 0; temp >>= 1)
-//         N_bit++;
-//     N_bit--;
-
-//     bit_reversal_reorder(a, n, N_bit);
-
-//     for (int16_t len = 2; len <= n; len <<= 1) {
-//         int16_t half_len = len >> 1;
-//         int16_t twiddle_base = modpow(NTRUP_ROOT, NTRUP_Q / len, NTRUP_Q);
-//         for (int16_t i = 0; i < n; i += len) {
-//             int16_t twiddle = 1;
-//             for (int16_t j = 0; j < half_len; j++) {
-//                 butterfly(&a[i + j], &a[i + j + half_len], twiddle, m);
-//                 twiddle = cmod((int32_t)twiddle * twiddle_base, m);
-//             }
-//         }
-//     }
-// }
-
-// static void ifft(int16_t *a, int16_t n, int16_t m) {
-//     int16_t inv_n = modpow(n, NTRUP_Q - 2, NTRUP_Q);
-
-//     bit_reversal_reorder(a, n, 0);
-
-//     for (int16_t len = n; len >= 2; len >>= 1) {
-//         int16_t half_len = len >> 1;
-//         int16_t twiddle_base = modpow(NTRUP_ROOT, len, NTRUP_Q);
-//         for (int16_t i = 0; i < n; i += len) {
-//             int16_t twiddle = 1;
-//             for (int16_t j = 0; j < half_len; j++) {
-//                 gentleman_sande_butterfly(&a[i + j], &a[i + j + half_len], twiddle, m);
-//                 twiddle = cmod((int32_t)twiddle * twiddle_base, m);
-//             }
-//         }
-//     }
-
-//     for (int16_t i = 0; i < n; i++) {
-//         a[i] = cmod((int32_t)a[i] * inv_n, m);
-//     }
-// }
 
 void fft_poly_mul(int16_t des[NTRUP_P], const int16_t src1[NTRUP_P], const int8_t src2[NTRUP_P]) {
     int16_t n = NTRUP_P;
@@ -280,6 +206,34 @@ void fft_poly_mul(int16_t des[NTRUP_P], const int16_t src1[NTRUP_P], const int8_
         des[i] = a[i];
     }
 
-    // free(a);
-    // free(b);
+    //free(a);
+    //free(b);
 }
+
+// void fft_poly_mul(int16_t *h, const int16_t *f, const int8_t *g)
+// {
+//     int16_t fg[NTRUP_P + NTRUP_P - 1];
+//     int16_t result;
+//     int i,j;
+
+//     for (i = 0; i < NTRUP_P; i++) {
+//       result = 0;
+//       for (j = 0;j <= i;++j) 
+//           result = cmod(result + f[j] * (int32_t)g[i - j], NTRUP_Q);
+//       fg[i] = result;
+//     }
+//     for (i = NTRUP_P; i < 2 * NTRUP_P - 1; ++i) {
+//       result = 0;
+//       for (j = i - NTRUP_P + 1; j < NTRUP_P; ++j) 
+//           result = cmod(result + f[j] * (int32_t)g[i - j], NTRUP_Q);
+//       fg[i] = result;
+//     }
+
+//     for (i = 2 * NTRUP_P - 2; i >= NTRUP_P; i--) {
+//       fg[i - NTRUP_P] = cmod(fg[i - NTRUP_P] + fg[i], NTRUP_Q);
+//       fg[i - NTRUP_P + 1] = cmod(fg[i - NTRUP_P + 1] + fg[i], NTRUP_Q);
+//     }
+
+//     for (i = 0; i < NTRUP_P; ++i) 
+//         h[i] = fg[i];
+// }
