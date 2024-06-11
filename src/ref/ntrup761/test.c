@@ -86,6 +86,7 @@ int main(void){
     }
     printf("poly_Rq_mul_small finished!\n");
 
+    
 
     int16_t test1[] = {0, 1, 2, 3, 4, 5, 6, 7};
     int16_t n1 = sizeof(test1) / sizeof(int16_t);
@@ -108,7 +109,15 @@ int main(void){
 	}
         schoolbook(ref, src1, src2);
         fft_poly_mul(fft_res, src1, src2);
-
+       
+        printf("src1_3: ");
+        print_array(src1,761);
+        printf("src2_3: ");
+        print_array(src2,761);
+        printf("ref_3: ");
+        print_array(ref,761);
+        printf("fft_res_3: ");
+        print_array(fft_res,761);
         for(size_t j = 0; j < NTRUP_P; j++){
             printf("Mismatch at index %zu: ref[%zu] = %d, fft_res[%zu] = %d\n", j, j, ref[j], j, fft_res[j]);
             assert(ref[j] == fft_res[j]);

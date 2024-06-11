@@ -162,7 +162,6 @@ void bit_reversal_reorder(int16_t *a, int16_t n, int16_t N_bit) {
         }
     }
 }
-
 static void fft(int16_t *a, int16_t n, int16_t m) {
     int16_t N_bit = 0;
     for (int16_t temp = n; temp > 0; temp >>= 1)
@@ -171,40 +170,86 @@ static void fft(int16_t *a, int16_t n, int16_t m) {
 
     bit_reversal_reorder(a, n, N_bit);
 
-    for (int16_t len = 2; len <= n; len <<= 1) {
+    // Cooley-Tukey FFT
+    for (int16_t i = 0; i < N_bit; i++) {
+        int16_t points1[n / 2];
+        int16_t points2[n / 2];
+        int16_t len = 1 << (i + 1);
         int16_t half_len = len >> 1;
-        int16_t twiddle_base = modpow(NTRUP_ROOT, NTRUP_Q / len, NTRUP_Q);
-        for (int16_t i = 0; i < n; i += len) {
-            int16_t twiddle = 1;
-            for (int16_t j = 0; j < half_len; j++) {
-                butterfly(&a[i + j], &a[i + j + half_len], twiddle, m);
-                twiddle = cmod((int32_t)twiddle * twiddle_base, m);
-            }
+        int16_t twiddle = modpow(NTRUP_ROOT, NTRUP_Q / len, NTRUP_Q);
+
+        for (int16_t j = 0; j < n / 2; j++) {
+            int16_t shift_bits = N_bit - i;
+            int16_t P = (j >> shift_bits) << shift_bits;
+            int16_t w_P = modpow(twiddle, P, NTRUP_Q);
+            int16_t even = a[j];
+            int16_t odd = a[j + half_len] * w_P;
+            points1[j] = cmod(even + odd, m);
+            points2[j] = cmod(even - odd, m);
+        }
+
+        int16_t k = 0;
+        for (int16_t j = 0; j < n / 2; j++) {
+            a[k++] = points1[j];
+            a[k++] = points2[j];
         }
     }
 }
-
 static void ifft(int16_t *a, int16_t n, int16_t m) {
     int16_t inv_n = modpow(n, NTRUP_Q - 2, NTRUP_Q);
+    int16_t inv_w = modpow(NTRUP_ROOT, NTRUP_Q - 1, NTRUP_Q);
 
-    bit_reversal_reorder(a, n, 0);
-
-    for (int16_t len = n; len >= 2; len >>= 1) {
-        int16_t half_len = len >> 1;
-        int16_t twiddle_base = modpow(NTRUP_ROOT, len, NTRUP_Q);
-        for (int16_t i = 0; i < n; i += len) {
-            int16_t twiddle = 1;
-            for (int16_t j = 0; j < half_len; j++) {
-                gentleman_sande_butterfly(&a[i + j], &a[i + j + half_len], twiddle, m);
-                twiddle = cmod((int32_t)twiddle * twiddle_base, m);
-            }
-        }
-    }
+    fft(a, n, m);
 
     for (int16_t i = 0; i < n; i++) {
+        a[i] = cmod((int32_t)a[i] * inv_w, m);
         a[i] = cmod((int32_t)a[i] * inv_n, m);
     }
+
+    bit_reversal_reorder(a, n, n / 2);
 }
+// static void fft(int16_t *a, int16_t n, int16_t m) {
+//     int16_t N_bit = 0;
+//     for (int16_t temp = n; temp > 0; temp >>= 1)
+//         N_bit++;
+//     N_bit--;
+
+//     bit_reversal_reorder(a, n, N_bit);
+
+//     for (int16_t len = 2; len <= n; len <<= 1) {
+//         int16_t half_len = len >> 1;
+//         int16_t twiddle_base = modpow(NTRUP_ROOT, NTRUP_Q / len, NTRUP_Q);
+//         for (int16_t i = 0; i < n; i += len) {
+//             int16_t twiddle = 1;
+//             for (int16_t j = 0; j < half_len; j++) {
+//                 butterfly(&a[i + j], &a[i + j + half_len], twiddle, m);
+//                 twiddle = cmod((int32_t)twiddle * twiddle_base, m);
+//             }
+//         }
+//     }
+// }
+
+// static void ifft(int16_t *a, int16_t n, int16_t m) {
+//     int16_t inv_n = modpow(n, NTRUP_Q - 2, NTRUP_Q);
+
+//     bit_reversal_reorder(a, n, 0);
+
+//     for (int16_t len = n; len >= 2; len >>= 1) {
+//         int16_t half_len = len >> 1;
+//         int16_t twiddle_base = modpow(NTRUP_ROOT, len, NTRUP_Q);
+//         for (int16_t i = 0; i < n; i += len) {
+//             int16_t twiddle = 1;
+//             for (int16_t j = 0; j < half_len; j++) {
+//                 gentleman_sande_butterfly(&a[i + j], &a[i + j + half_len], twiddle, m);
+//                 twiddle = cmod((int32_t)twiddle * twiddle_base, m);
+//             }
+//         }
+//     }
+
+//     for (int16_t i = 0; i < n; i++) {
+//         a[i] = cmod((int32_t)a[i] * inv_n, m);
+//     }
+// }
 
 void fft_poly_mul(int16_t des[NTRUP_P], const int16_t src1[NTRUP_P], const int8_t src2[NTRUP_P]) {
     int16_t n = NTRUP_P;
