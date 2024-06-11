@@ -102,7 +102,7 @@ static void butterfly(int16_t *a, int16_t *b, int16_t twiddle, int16_t m) {
     int16_t t = cmod((int32_t)*b * twiddle, m);
     int16_t new_b = cmod((int32_t)*a - t, m);
     int16_t new_a = cmod((int32_t)*a + t, m);
-    // printf("a: %d, b: %d, twiddle: %d, t: %d, new_a: %d, new_b: %d\n", *a, *b, twiddle, t, new_a, new_b);
+    printf("a: %d, b: %d, twiddle: %d, t: %d, new_a: %d, new_b: %d\n", *a, *b, twiddle, t, new_a, new_b);
     *b = new_b;
     *a = new_a;
 }
@@ -124,7 +124,12 @@ static int16_t modinv(int16_t a, int16_t m) {
     if (t < 0) t = t + m;
     return t;
 }
-
+/*  
+gentleman_sande_butterfly
+It takes two complex numbers a and b, and a twiddle factor twiddle, 
+and computes a' = a + b and b' = (a - b)/twiddle, 
+where a' and b' are the updated values of a and b, respectively.
+*/
 static void gentleman_sande_butterfly(int16_t *a, int16_t *b, int16_t twiddle, int16_t m) {
     int16_t a_temp = *a;
     int16_t b_temp = *b;
