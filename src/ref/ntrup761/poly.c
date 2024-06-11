@@ -100,9 +100,10 @@ where a' and b' are the updated values of a and b, respectively.
 */
 static void butterfly(int16_t *a, int16_t *b, int16_t twiddle, int16_t m) {
     int16_t t = cmod((int32_t)*b * twiddle, m);
+    
     int16_t new_b = cmod((int32_t)*a - t, m);
     int16_t new_a = cmod((int32_t)*a + t, m);
-    printf("a: %d, b: %d, twiddle: %d, t: %d, new_a: %d, new_b: %d\n", *a, *b, twiddle, t, new_a, new_b);
+    // printf("a: %d, b: %d, twiddle: %d, t: %d, new_a: %d, new_b: %d, m: %d\n", *a, *b, twiddle, t, new_a, new_b, m);
     *b = new_b;
     *a = new_a;
 }
@@ -138,7 +139,7 @@ static void gentleman_sande_butterfly(int16_t *a, int16_t *b, int16_t twiddle, i
     int16_t new_a = cmod((int32_t)a_temp + b_temp, m);
     int16_t new_b = cmod((int32_t)cmod((int32_t)a_temp - b_temp, m) * twiddle_inv, m);
 
-    // printf("a: %d, b: %d, twiddle: %d, twiddle_inv: %d, new_a: %d, new_b: %d\n", *a, *b, twiddle, twiddle_inv, new_a, new_b);
+   //printf("a: %d, b: %d, twiddle: %d, twiddle_inv: %d, new_a: %d, new_b: %d, m: %d\n", *a, *b, twiddle, twiddle_inv, new_a, new_b, m);
     *a = new_a;
     *b = new_b;
 }
